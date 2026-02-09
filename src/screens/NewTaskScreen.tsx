@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ScrollView,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
@@ -92,78 +93,107 @@ export const NewTaskScreen: React.FC<Props> = ({ navigation, route }) => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={styles.content}>
-        <Text style={styles.title}>New List</Text>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.cancelButton} 
+            onPress={() => navigation.goBack()}
+          >
+            <MaterialCommunityIcons name="close" size={28} color={COLORS.textSecondary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>New Task</Text>
+          <TouchableOpacity 
+            style={styles.saveButton} 
+            onPress={handleSave}
+          >
+            <MaterialCommunityIcons name="check" size={28} color={COLORS.primary} />
+          </TouchableOpacity>
+        </View>
 
-        <TouchableOpacity style={styles.doneButton} onPress={handleSave}>
-          <Text style={styles.doneButtonText}>Done</Text>
-        </TouchableOpacity>
-
-        <View style={styles.inputContainer}>
-          <MaterialCommunityIcons
-            name="format-list-bulleted"
-            size={24}
-            color={COLORS.textSecondary}
-            style={styles.inputIcon}
-          />
+        {/* Task Name Card */}
+        <View style={styles.card}>
+          <Text style={styles.cardLabel}>Task Name</Text>
           <TextInput
-            style={styles.input}
-            placeholder="Enter List Name"
+            style={styles.taskNameInput}
+            placeholder="What needs to be done?"
             placeholderTextColor={COLORS.textMuted}
             value={taskName}
             onChangeText={setTaskName}
             autoFocus
+            multiline
           />
         </View>
 
-        <View style={styles.divider} />
-
-        <TouchableOpacity
-          style={styles.inputContainer}
+        {/* Due Date Card */}
+        <TouchableOpacity 
+          style={styles.card}
           onPress={() => setShowDueDatePicker(true)}
+          activeOpacity={0.7}
         >
-          <MaterialCommunityIcons
-            name="calendar"
-            size={24}
-            color={COLORS.textSecondary}
-            style={styles.inputIcon}
-          />
-          <Text style={[styles.inputText, !dueDate && styles.placeholder]}>
-            {dueDate ? formatDate(formatDateTime(dueDate)) : 'Due'}
+          <View style={styles.cardHeader}>
+            <View style={styles.cardLabelContainer}>
+              <MaterialCommunityIcons
+                name="calendar"
+                size={20}
+                color={COLORS.primary}
+                style={styles.cardIcon}
+              />
+              <Text style={styles.cardLabel}>Due Date</Text>
+            </View>
+            {dueDate && (
+              <TouchableOpacity 
+                onPress={(e) => {
+                  e.stopPropagation();
+                  setDueDate(null);
+                }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <MaterialCommunityIcons name="close-circle" size={20} color={COLORS.textSecondary} />
+              </TouchableOpacity>
+            )}
+          </View>
+          <Text style={[styles.cardValue, !dueDate && styles.cardPlaceholder]}>
+            {dueDate ? formatDate(formatDateTime(dueDate)) : 'Tap to set due date'}
           </Text>
-          {dueDate && (
-            <TouchableOpacity onPress={() => setDueDate(null)}>
-              <MaterialCommunityIcons name="close" size={24} color={COLORS.accent} />
-            </TouchableOpacity>
-          )}
         </TouchableOpacity>
 
-        <View style={styles.divider} />
-
-        <TouchableOpacity
-          style={styles.inputContainer}
+        {/* Reminder Card */}
+        <TouchableOpacity 
+          style={styles.card}
           onPress={() => setShowReminderDatePicker(true)}
+          activeOpacity={0.7}
         >
-          <MaterialCommunityIcons
-            name="bell"
-            size={24}
-            color={COLORS.textSecondary}
-            style={styles.inputIcon}
-          />
-          <Text style={[styles.inputText, !reminder && styles.placeholder]}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardLabelContainer}>
+              <MaterialCommunityIcons
+                name="bell-ring"
+                size={20}
+                color={COLORS.primary}
+                style={styles.cardIcon}
+              />
+              <Text style={styles.cardLabel}>Reminder</Text>
+            </View>
+            {reminder && (
+              <TouchableOpacity 
+                onPress={(e) => {
+                  e.stopPropagation();
+                  setReminder(null);
+                }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <MaterialCommunityIcons name="close-circle" size={20} color={COLORS.textSecondary} />
+              </TouchableOpacity>
+            )}
+          </View>
+          <Text style={[styles.cardValue, !reminder && styles.cardPlaceholder]}>
             {reminder
-              ? `${formatDate(formatDateTime(reminder))} ${formatTime(formatDateTime(reminder))}`
-              : 'Reminder'}
+              ? `${formatDate(formatDateTime(reminder))} at ${formatTime(formatDateTime(reminder))}`
+              : 'Tap to set reminder'}
           </Text>
-          {reminder && (
-            <TouchableOpacity onPress={() => setReminder(null)}>
-              <MaterialCommunityIcons name="close" size={24} color={COLORS.accent} />
-            </TouchableOpacity>
-          )}
         </TouchableOpacity>
 
-        <View style={styles.divider} />
-
+        {/* Date/Time Pickers */}
         {showDueDatePicker && (
           <DateTimePicker
             value={dueDate || new Date()}
@@ -190,7 +220,7 @@ export const NewTaskScreen: React.FC<Props> = ({ navigation, route }) => {
             onChange={handleReminderTimeChange}
           />
         )}
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 };
@@ -200,54 +230,74 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  content: {
+  scrollView: {
     flex: 1,
-    padding: 16,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.textPrimary,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  doneButton: {
-    backgroundColor: COLORS.gray,
-    paddingHorizontal: 24,
-    paddingVertical: 8,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-    marginBottom: 24,
-  },
-  doneButtonText: {
-    color: COLORS.textPrimary,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  inputContainer: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 60,
+    paddingBottom: 20,
   },
-  inputIcon: {
-    marginRight: 8,
+  cancelButton: {
+    padding: 4,
   },
-  input: {
-    flex: 1,
+  headerTitle: {
     fontSize: 20,
+    fontWeight: 'bold',
     color: COLORS.textPrimary,
   },
-  inputText: {
-    flex: 1,
-    fontSize: 20,
-    color: COLORS.accent,
+  saveButton: {
+    padding: 4,
   },
-  placeholder: {
-    color: COLORS.accent,
+  card: {
+    backgroundColor: COLORS.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
-  divider: {
-    height: 0.5,
-    backgroundColor: COLORS.textMuted,
-    marginLeft: 32,
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  cardLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cardIcon: {
+    marginRight: 8,
+  },
+  cardLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  taskNameInput: {
+    fontSize: 18,
+    color: COLORS.textPrimary,
+    marginTop: 8,
+    minHeight: 60,
+    textAlignVertical: 'top',
+  },
+  cardValue: {
+    fontSize: 16,
+    color: COLORS.textPrimary,
+    marginTop: 4,
+  },
+  cardPlaceholder: {
+    color: COLORS.textMuted,
+    fontStyle: 'italic',
   },
 });

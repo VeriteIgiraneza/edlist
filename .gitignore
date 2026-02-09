@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+
+# Expo files
+.expo/
+dist/
+web-build/
+
+# System files
+.DS_Store
+*.log
+
+# Native (Optional - ignore if you want Expo to manage these)
+android/
+ios/

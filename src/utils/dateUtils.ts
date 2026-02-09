@@ -4,7 +4,7 @@ import { DATE_FORMAT, TIME_FORMAT, DATETIME_FORMAT } from '../constants/config';
 export const formatDate = (dateString: string | null): string => {
   if (!dateString) return '';
   try {
-    const date = parse(dateString, DATETIME_FORMAT, new Date());
+    const date = new Date(dateString);
     return format(date, DATE_FORMAT);
   } catch {
     return '';
@@ -14,7 +14,7 @@ export const formatDate = (dateString: string | null): string => {
 export const formatTime = (dateString: string | null): string => {
   if (!dateString) return '';
   try {
-    const date = parse(dateString, DATETIME_FORMAT, new Date());
+    const date = new Date(dateString);
     return format(date, TIME_FORMAT);
   } catch {
     return '';
@@ -27,7 +27,7 @@ export const formatDateTime = (date: Date): string => {
 
 export const formatReminderDisplay = (reminderString: string): string => {
   try {
-    const date = parse(reminderString, DATETIME_FORMAT, new Date());
+    const date = new Date(reminderString);
     const day = format(date, 'dd');
     const month = format(date, 'MMM').toUpperCase();
     const time = format(date, 'h:mma');
@@ -41,7 +41,7 @@ export const getDueDateStatus = (dueDate: string | null): 'overdue' | 'today' | 
   if (!dueDate) return null;
   
   try {
-    const date = parse(dueDate, DATETIME_FORMAT, new Date());
+    const date = new Date(dueDate);
     const dueDateStart = startOfDay(date);
     const todayStart = startOfDay(new Date());
     
@@ -54,5 +54,5 @@ export const getDueDateStatus = (dueDate: string | null): 'overdue' | 'today' | 
 };
 
 export const parseDate = (dateString: string): Date => {
-  return parse(dateString, DATETIME_FORMAT, new Date());
+  return new Date(dateString);
 };

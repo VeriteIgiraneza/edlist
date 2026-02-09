@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import DatabaseService from '../database/DatabaseService';
+// import DatabaseService from '../database/DatabaseService'; // Commented out for UI development
+import { mockFolders } from '../data/mockData';
 import { Folder, CreateFolderInput, UpdateFolderInput } from '../types';
 import { COLORS } from '../constants/colors';
 
@@ -15,37 +16,29 @@ interface FolderContextType {
 const FolderContext = createContext<FolderContextType | undefined>(undefined);
 
 export const FolderProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [folders, setFolders] = useState<Folder[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [folders, setFolders] = useState<Folder[]>(mockFolders);
+  const [loading, setLoading] = useState(false);
+  const [nextId, setNextId] = useState(mockFolders.length + 1);
 
   const refreshFolders = async () => {
-    try {
-      setLoading(true);
-      const allFolders = await DatabaseService.getAllFolders();
-      
-      // Create default folder if none exist
-      if (allFolders.length === 0) {
-        const defaultFolder: CreateFolderInput = {
-          name: 'Edu Folder',
-          color: COLORS.gray,
-        };
-        const id = await DatabaseService.createFolder(defaultFolder);
-        allFolders.push({ id, ...defaultFolder });
-      }
-      
-      setFolders(allFolders);
-    } catch (error) {
-      console.error('Error loading folders:', error);
-    } finally {
-      setLoading(false);
-    }
+    // Using mock data - no need to refresh from database
+    // Just simulate async operation
+    return Promise.resolve();
   };
 
   const createFolder = async (folder: CreateFolderInput): Promise<number> => {
     try {
-      const id = await DatabaseService.createFolder(folder);
-      await refreshFolders();
-      return id;
+      const newFolder: Folder = {
+        id: nextId,
+        name: folder.name,
+        color: folder.color,
+        createdAt: new Date().toISOString(),
+      };
+      
+      setFolders(prevFolders => [...prevFolders, newFolder]);
+      setNextId(prev => prev + 1);
+      
+      return newFolder.id;
     } catch (error) {
       console.error('Error creating folder:', error);
       throw error;
@@ -54,8 +47,13 @@ export const FolderProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   const updateFolder = async (folder: UpdateFolderInput): Promise<void> => {
     try {
-      await DatabaseService.updateFolder(folder);
-      await refreshFolders();
+      setFolders(prevFolders => 
+        prevFolders.map(f => 
+          f.id === folder.id 
+            ? { ...f, name: folder.name, color: folder.color }
+            : f
+        )
+      );
     } catch (error) {
       console.error('Error updating folder:', error);
       throw error;
@@ -64,16 +62,20 @@ export const FolderProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   const deleteFolder = async (id: number): Promise<void> => {
     try {
-      await DatabaseService.deleteFolder(id);
-      await refreshFolders();
+      setFolders(prevFolders => prevFolders.filter(f => f.id !== id));
     } catch (error) {
       console.error('Error deleting folder:', error);
       throw error;
     }
   };
 
+  // Initialize with mock data on mount
   useEffect(() => {
-    refreshFolders();
+    // Simulate loading
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+    }, 500);
   }, []);
 
   return (
@@ -98,4 +100,4 @@ export const useFolders = (): FolderContextType => {
     throw new Error('useFolders must be used within FolderProvider');
   }
   return context;
-};  
+};

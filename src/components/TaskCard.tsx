@@ -37,10 +37,11 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onPress, onLongPress }
       onLongPress={onLongPress}
       activeOpacity={0.7}
     >
+      // I have removed the 'circle-outline' and 'checkbox-marked-circle-outline'
       <View style={styles.content}>
         <MaterialCommunityIcons
-          name="format-list-bulleted"
-          size={36}
+          // name="checkbox-marked-circle-outline"
+          size={6}
           color={COLORS.textSecondary}
           style={styles.icon}
         />
@@ -106,7 +107,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowRadius: 3.84, 
   },
   completedCard: {
     opacity: 0.6,
@@ -114,17 +115,19 @@ const styles = StyleSheet.create({
   content: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    paddingVertical: 15,
+    paddingLeft: 8,
+    paddingRight: 8,
   },
   icon: {
-    marginRight: 8,
+    marginRight: 4,
   },
   textContainer: {
     flex: 1,
   },
   taskName: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 14,
+    // fontWeight: 'bold',
     marginBottom: 4,
   },
   completedText: {
