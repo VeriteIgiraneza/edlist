@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   StyleSheet,
   View,
@@ -14,6 +15,7 @@ import { useTasks } from '../contexts/TaskContext';
 import { useFolders } from '../contexts/FolderContext';
 import { SwipeableTask } from '../components/SwipeableTask';
 import { COLORS } from '../constants/colors';
+import { FolderSelectorModal } from '../components/FolderSelectorModal';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 type AllTasksScreenNavigationProp = StackNavigationProp<RootStackParamList, 'AllTasks'>;
@@ -25,6 +27,7 @@ interface Props {
 export const AllTasksScreen: React.FC<Props> = ({ navigation }) => {
   const { tasks, deleteTask, toggleTaskCompletion, loading } = useTasks();
   const { folders } = useFolders();
+  const [showFolderSelector, setShowFolderSelector] = useState(false);
 
   const getFolderName = (folderId: number): string => {
     const folder = folders.find(f => f.id === folderId);
@@ -59,28 +62,20 @@ export const AllTasksScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleAddTask = () => {
     if (folders.length === 0) {
-        Alert.alert(
+      Alert.alert(
         'No Folders',
         'Please create a folder first before adding tasks.',
         [{ text: 'OK' }]
-        );
-        return;
+      );
+      return;
     }
 
-    // Create alert buttons for each folder
-    const folderButtons = folders.map(folder => ({
-        text: folder.name,
-        onPress: () => navigation.navigate('NewTask', { folderId: folder.id }),
-    }));
+    setShowFolderSelector(true);
+  };
 
-    // Add cancel button
-    folderButtons.push({ text: 'Cancel', style: 'cancel' } as any);
-
-    Alert.alert(
-        'Select Folder',
-        'Which folder should this task be added to?',
-        folderButtons
-    );
+  const handleSelectFolder = (folderId: number) => {
+    setShowFolderSelector(false);
+    navigation.navigate('NewTask', { folderId });
   };
 
   if (loading) {
@@ -130,11 +125,12 @@ export const AllTasksScreen: React.FC<Props> = ({ navigation }) => {
         </View>
         ) : (
         <FlatList
-            data={[...tasks].sort((a, b) => {
+          data={[...tasks].sort((a, b) => {
             if (a.completed === b.completed) return 0;
             return a.completed ? 1 : -1;
-            })}
-            keyExtractor={(item) => item.id.toString()}
+          })}
+          extraData={tasks}
+          keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
             <View>
               <View style={styles.folderBadge}>
@@ -159,6 +155,12 @@ export const AllTasksScreen: React.FC<Props> = ({ navigation }) => {
         />
       )}
 
+      <FolderSelectorModal
+        visible={showFolderSelector}
+        folders={folders}
+        onSelectFolder={handleSelectFolder}
+        onCancel={() => setShowFolderSelector(false)}
+      />
     </View>
   );
 };
@@ -184,11 +186,13 @@ const styles = StyleSheet.create({
     padding: 8,
     position: 'absolute',
     right: 16,
+    zIndex: 10,
   },
   topAddButton: {
     padding: 8,
     position: 'absolute',
     left: 16,
+    zIndex: 10,
   },
   loadingContainer: {
     flex: 1,

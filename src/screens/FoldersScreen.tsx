@@ -6,6 +6,7 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../types';
@@ -21,7 +22,7 @@ interface Props {
 }
 
 export const FoldersScreen: React.FC<Props> = ({ navigation }) => {
-  const { folders, loading, refreshFolders } = useFolders();
+  const { folders, loading, refreshFolders, deleteFolder } = useFolders();
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
@@ -39,43 +40,83 @@ export const FoldersScreen: React.FC<Props> = ({ navigation }) => {
     );
   }
 
+  const handleDeleteFolder = (folder: { id: number; name: string }) => {
+    Alert.alert(
+      'Delete Folder',
+      `Are you sure you want to delete "${folder.name}"? This will also delete all tasks inside.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            await deleteFolder(folder.id);
+            refreshFolders();
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>My Folders</Text>
-      
-      <View style={styles.headerContainer}>
-        <MaterialCommunityIcons
-          name="folder"
-          size={20}
-          color={COLORS.textSecondary}
-          style={styles.headerIcon}
-        />
-        <Text style={styles.header}>Folders</Text>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+        >
+          <MaterialCommunityIcons name="chevron-left" size={32} color={COLORS.textPrimary} />
+        </TouchableOpacity>
+        
+        <Text style={styles.title}>Folders</Text>
+        
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => navigation.navigate('NewFolder')}
+          activeOpacity={0.7}
+        >
+          <MaterialCommunityIcons name="plus-circle" size={28} color={COLORS.primary} />
+        </TouchableOpacity>
       </View>
 
-      <FlatList
-        data={folders}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <FolderCard
-            folder={item}
-            onPress={() => navigation.navigate('Tasks', {
-              folderId: item.id,
-              folderName: item.name,
-            })}
-          />
-        )}
-        contentContainerStyle={styles.listContainer}
-        showsVerticalScrollIndicator={false}
-      />
+      {/* Folder Count */}
+      <View style={styles.countContainer}>
+        <Text style={styles.countText}>
+          {folders.length} {folders.length === 1 ? 'folder' : 'folders'}
+        </Text>
+      </View>
 
-      <TouchableOpacity
-        style={styles.newButton}
-        onPress={() => navigation.navigate('NewFolder')}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.buttonText}>New Folder</Text>
-      </TouchableOpacity>
+      {/* Folder List */}
+      {folders.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <MaterialCommunityIcons 
+            name="folder-outline" 
+            size={80} 
+            color={COLORS.textMuted} 
+          />
+          <Text style={styles.emptyText}>No folders yet</Text>
+          <Text style={styles.emptySubtext}>Tap the + button to create your first folder</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={folders}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <FolderCard
+              folder={item}
+              onPress={() => navigation.navigate('Tasks', {
+                folderId: item.id,
+                folderName: item.name,
+              })}
+              onLongPress={() => handleDeleteFolder(item)}
+            />
+          )}
+          contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
     </View>
   );
 };
@@ -84,7 +125,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    padding: 16,
   },
   loadingContainer: {
     flex: 1,
@@ -92,47 +132,56 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: COLORS.background,
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+    paddingTop: 40,
+    paddingBottom: 16,
+  },
+  backButton: {
+    padding: 4,
+  },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    fontStyle: 'italic',
     color: COLORS.textPrimary,
+    flex: 1,
     textAlign: 'center',
-    marginBottom: 16,
   },
-  headerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
+  addButton: {
+    padding: 4,
   },
-  headerIcon: {
-    marginRight: 4,
+  countContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
   },
-  header: {
-    fontSize: 16,
-    fontWeight: 'bold',
+  countText: {
+    fontSize: 14,
     color: COLORS.textSecondary,
+    fontWeight: '600',
   },
   listContainer: {
-    paddingBottom: 80,
+    paddingHorizontal: 16,
+    paddingBottom: 20,
   },
-  newButton: {
-    position: 'absolute',
-    bottom: 16,
-    left: 16,
-    backgroundColor: COLORS.gray,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
   },
-  buttonText: {
-    color: COLORS.textPrimary,
-    fontSize: 16,
+  emptyText: {
+    fontSize: 20,
     fontWeight: 'bold',
+    color: COLORS.textSecondary,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+    textAlign: 'center',
   },
 });

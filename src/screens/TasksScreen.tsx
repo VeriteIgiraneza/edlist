@@ -56,7 +56,7 @@ export const TasksScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const handleDelete = (task: Task) => {
     Alert.alert(
-      'Delete Assignment',
+      'Delete Task',
       `Are you sure you want to delete "${task.name}"?`,
       [
         { text: 'Cancel', style: 'cancel' },
@@ -85,28 +85,69 @@ export const TasksScreen: React.FC<Props> = ({ navigation, route }) => {
     );
   }
 
+  // Sort tasks: incomplete first, completed last
+  const sortedTasks = [...tasks].sort((a, b) => {
+    if (a.completed === b.completed) return 0;
+    return a.completed ? 1 : -1;
+  });
+
+  const completedCount = tasks.filter(t => t.completed).length;
+  const totalCount = tasks.length;
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{folderName}</Text>
-      
-      <View style={styles.headerContainer}>
-        <MaterialCommunityIcons
-          name="calendar"
-          size={20}
-          color={COLORS.textSecondary}
-          style={styles.headerIcon}
-        />
-        <Text style={styles.header}>Assignments Due Soon</Text>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+        >
+          <MaterialCommunityIcons name="chevron-left" size={32} color={COLORS.textPrimary} />
+        </TouchableOpacity>
+        
+        <Text style={styles.title}>{folderName}</Text>
+        
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => navigation.navigate('NewTask', { folderId })}
+          activeOpacity={0.7}
+        >
+          <MaterialCommunityIcons name="plus-circle" size={28} color={COLORS.primary} />
+        </TouchableOpacity>
       </View>
 
+      {/* Progress Indicator */}
+      {tasks.length > 0 && (
+        <View style={styles.progressContainer}>
+          <View style={styles.progressBar}>
+            <View 
+              style={[
+                styles.progressFill, 
+                { width: `${(completedCount / totalCount) * 100}%` }
+              ]} 
+            />
+          </View>
+          <Text style={styles.progressText}>
+            {completedCount} of {totalCount} completed
+          </Text>
+        </View>
+      )}
+
+      {/* Task List */}
       {tasks.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No assignments yet</Text>
-          <Text style={styles.emptySubtext}>Tap "New List" to add one</Text>
+          <MaterialCommunityIcons 
+            name="clipboard-text-outline" 
+            size={80} 
+            color={COLORS.textMuted} 
+          />
+          <Text style={styles.emptyText}>No tasks yet</Text>
+          <Text style={styles.emptySubtext}>Tap the + button to add your first task</Text>
         </View>
       ) : (
         <FlatList
-          data={tasks}
+          data={sortedTasks}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
             <SwipeableTask
@@ -120,14 +161,6 @@ export const TasksScreen: React.FC<Props> = ({ navigation, route }) => {
           showsVerticalScrollIndicator={false}
         />
       )}
-
-      <TouchableOpacity
-        style={styles.newButton}
-        onPress={() => navigation.navigate('NewTask', { folderId })}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.buttonText}>New List</Text>
-      </TouchableOpacity>
     </View>
   );
 };
@@ -136,7 +169,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    padding: 16,
   },
   loadingContainer: {
     flex: 1,
@@ -144,61 +176,69 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: COLORS.background,
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+    paddingTop: 40,
+    paddingBottom: 16,
+  },
+  backButton: {
+    padding: 4,
+  },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    fontStyle: 'italic',
     color: COLORS.textPrimary,
+    flex: 1,
     textAlign: 'center',
-    marginBottom: 16,
   },
-  headerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  addButton: {
+    padding: 4,
+  },
+  progressContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  progressBar: {
+    height: 6,
+    backgroundColor: COLORS.cardBackground,
+    borderRadius: 3,
+    overflow: 'hidden',
     marginBottom: 8,
   },
-  headerIcon: {
-    marginRight: 4,
+  progressFill: {
+    height: '100%',
+    backgroundColor: COLORS.primary,
+    borderRadius: 3,
   },
-  header: {
-    fontSize: 16,
-    fontWeight: 'bold',
+  progressText: {
+    fontSize: 12,
     color: COLORS.textSecondary,
+    textAlign: 'center',
+    fontWeight: '600',
   },
   listContainer: {
-    paddingBottom: 80,
+    paddingHorizontal: 8,
+    paddingBottom: 20,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 40,
   },
   emptyText: {
-    fontSize: 18,
+    fontSize: 20,
+    fontWeight: 'bold',
     color: COLORS.textSecondary,
+    marginTop: 16,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
     color: COLORS.textMuted,
-  },
-  newButton: {
-    position: 'absolute',
-    bottom: 16,
-    left: 16,
-    backgroundColor: COLORS.gray,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  buttonText: {
-    color: COLORS.textPrimary,
-    fontSize: 16,
-    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });

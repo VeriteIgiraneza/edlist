@@ -69,22 +69,25 @@ export default function App() {
                   options={{
                     title: 'New Folder',
                     presentation: 'modal',
+                    headerTitleAlign: 'center',
                   }}
                 />
                 <Stack.Screen
                   name="NewTask"
                   component={NewTaskScreen}
                   options={{
-                    title: 'New Assignment',
+                    title: 'New Task',
                     presentation: 'modal',
+                    headerTitleAlign: 'center',
                   }}
                 />
                 <Stack.Screen
                   name="EditTask"
                   component={EditTaskScreen}
                   options={{
-                    title: 'Edit Assignment',
+                    title: 'Edit Task',
                     presentation: 'modal',
+                    headerTitleAlign: 'center',
                   }}
                 />
               </Stack.Navigator>

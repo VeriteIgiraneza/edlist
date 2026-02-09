@@ -26,4 +26,12 @@ export const FOLDER_COLORS = [
   '#00BCD4', // Cyan
   '#FFEB3B', // Yellow
   '#795548', // Brown
+  '#E91E63', // Pink
+  '#3F51B5', // Indigo
+  '#009688', // Teal
+  '#8BC34A', // Light Green
+  '#FFC107', // Amber
+  '#FF5722', // Deep Orange
+  '#607D8B', // Blue Grey
+  // '#CDDC39', // Lime
 ];

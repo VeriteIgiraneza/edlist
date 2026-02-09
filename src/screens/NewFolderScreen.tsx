@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ScrollView,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../types';
@@ -27,45 +28,77 @@ export const NewFolderScreen: React.FC<Props> = ({ navigation }) => {
   const [folderName, setFolderName] = useState('');
   const [selectedColor, setSelectedColor] = useState(FOLDER_COLORS[0]);
 
-  const handleSave = async () => {
-    if (!folderName.trim()) {
-      Alert.alert('Error', 'Please enter a folder name');
-      return;
-    }
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', async (e) => {
+      if (!folderName.trim()) {
+        // If no folder name, just let them go back
+        return;
+      }
 
-    try {
-      await createFolder({
-        name: folderName.trim(),
-        color: selectedColor,
-      });
-      navigation.goBack();
-    } catch (error) {
-      Alert.alert('Error', 'Failed to create folder');
-    }
-  };
+      // Prevent default back action
+      e.preventDefault();
+
+      // Save the folder
+      try {
+        await createFolder({
+          name: folderName.trim(),
+          color: selectedColor,
+        });
+        // After saving, allow navigation
+        navigation.dispatch(e.data.action);
+      } catch (error) {
+        Alert.alert('Error', 'Failed to create folder');
+      }
+    });
+
+    return unsubscribe;
+  }, [navigation, folderName, selectedColor, createFolder]);
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={styles.content}>
-        <Text style={styles.title}>New Folder</Text>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        {/* <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.cancelButton} 
+            onPress={() => navigation.goBack()}
+          >
+            <MaterialCommunityIcons name="close" size={28} color={COLORS.textSecondary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>New Folder</Text>
+          <TouchableOpacity 
+            style={styles.saveButton} 
+            onPress={handleSave}
+          >
+            <MaterialCommunityIcons name="check" size={28} color={COLORS.primary} />
+          </TouchableOpacity>
+        </View> */}
 
-        <TouchableOpacity style={styles.doneButton} onPress={handleSave}>
-          <Text style={styles.doneButtonText}>Done</Text>
-        </TouchableOpacity>
+        {/* Folder Preview Card */}
+        <View style={styles.previewCard}>
+          <View style={[styles.previewColorStripe, { backgroundColor: selectedColor }]} />
+          <View style={styles.previewContent}>
+            <MaterialCommunityIcons
+              name="folder"
+              size={48}
+              color={selectedColor}
+              style={styles.previewIcon}
+            />
+            <Text style={styles.previewText}>
+              {folderName.trim() || 'Folder Preview'}
+            </Text>
+          </View>
+        </View>
 
-        <View style={styles.inputContainer}>
-          <MaterialCommunityIcons
-            name="folder"
-            size={24}
-            color={COLORS.textSecondary}
-            style={styles.inputIcon}
-          />
+        {/* Folder Name Card */}
+        <View style={styles.card}>
+          <Text style={styles.cardLabel}>Folder Name</Text>
           <TextInput
-            style={styles.input}
-            placeholder="Enter Folder Name"
+            style={styles.folderNameInput}
+            placeholder="e.g., Work, Personal, Study..."
             placeholderTextColor={COLORS.textMuted}
             value={folderName}
             onChangeText={setFolderName}
@@ -73,11 +106,17 @@ export const NewFolderScreen: React.FC<Props> = ({ navigation }) => {
           />
         </View>
 
-        <View style={styles.divider} />
-
-        <Text style={styles.label}>Folder Color</Text>
-        <ColorPicker selectedColor={selectedColor} onColorSelect={setSelectedColor} />
-      </View>
+        {/* Color Picker Card */}
+        <View style={styles.card}>
+          <Text style={styles.cardLabel}>Folder Color</Text>
+          <View style={styles.colorPickerContainer}>
+            <ColorPicker 
+              selectedColor={selectedColor} 
+              onColorSelect={setSelectedColor} 
+            />
+          </View>
+        </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 };
@@ -87,54 +126,84 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  content: {
+  scrollView: {
     flex: 1,
-    padding: 16,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    fontStyle: 'italic',
-    color: COLORS.textPrimary,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  doneButton: {
-    backgroundColor: COLORS.gray,
-    paddingHorizontal: 24,
-    paddingVertical: 8,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-    marginBottom: 24,
-  },
-  doneButtonText: {
-    color: COLORS.textPrimary,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  inputContainer: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 12,
   },
-  inputIcon: {
-    marginRight: 8,
+  cancelButton: {
+    padding: 4,
   },
-  input: {
-    flex: 1,
+  headerTitle: {
     fontSize: 20,
+    fontWeight: 'bold',
     color: COLORS.textPrimary,
   },
-  divider: {
-    height: 1,
-    backgroundColor: COLORS.textMuted,
-    marginLeft: 32,
+  saveButton: {
+    padding: 4,
   },
-  label: {
-    fontSize: 16,
+  previewCard: {
+    backgroundColor: COLORS.cardBackground,
+    borderRadius: 12,
+    marginHorizontal: 2,
+    marginBottom: 20,
+    overflow: 'hidden',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  previewColorStripe: {
+    width: '100%',
+    height: 4,
+  },
+  previewContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+  },
+  previewIcon: {
+    marginRight: 16,
+  },
+  previewText: {
+    fontSize: 20,
     fontWeight: 'bold',
+    color: COLORS.textPrimary,
+    flex: 1,
+  },
+  card: {
+    backgroundColor: COLORS.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 2,
+    marginBottom: 5,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  cardLabel: {
+    fontSize: 14,
+    fontWeight: '600',
     color: COLORS.textSecondary,
-    marginTop: 24,
-    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 5,
+  },
+  folderNameInput: {
+    fontSize: 18,
+    color: COLORS.textPrimary,
+    paddingVertical: 8,
+  },
+  colorPickerContainer: {
+    marginTop: 8,
   },
 });

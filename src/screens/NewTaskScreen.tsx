@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -38,7 +38,7 @@ export const NewTaskScreen: React.FC<Props> = ({ navigation, route }) => {
   const [showReminderDatePicker, setShowReminderDatePicker] = useState(false);
   const [showReminderTimePicker, setShowReminderTimePicker] = useState(false);
 
-  const handleSave = async () => {
+  const handleSave = React.useCallback(async () => {
     if (!taskName.trim()) {
       Alert.alert('Error', 'Please enter a task name');
       return;
@@ -55,7 +55,17 @@ export const NewTaskScreen: React.FC<Props> = ({ navigation, route }) => {
     } catch (error) {
       Alert.alert('Error', 'Failed to create task');
     }
-  };
+  }, [taskName, folderId, dueDate, reminder, createTask, navigation]);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity onPress={handleSave} style={{ marginRight: 16 }}>
+          <MaterialCommunityIcons name="check" size={28} color={COLORS.primary} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, handleSave]);
 
   const handleDueDateChange = (event: any, selectedDate?: Date) => {
     setShowDueDatePicker(false);
@@ -95,7 +105,7 @@ export const NewTaskScreen: React.FC<Props> = ({ navigation, route }) => {
     >
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <View style={styles.header}>
+        {/* <View style={styles.header}>
           <TouchableOpacity 
             style={styles.cancelButton} 
             onPress={() => navigation.goBack()}
@@ -109,7 +119,7 @@ export const NewTaskScreen: React.FC<Props> = ({ navigation, route }) => {
           >
             <MaterialCommunityIcons name="check" size={28} color={COLORS.primary} />
           </TouchableOpacity>
-        </View>
+        </View> */}
 
         {/* Task Name Card */}
         <View style={styles.card}>
@@ -233,31 +243,13 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 60,
-    paddingBottom: 20,
-  },
-  cancelButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: COLORS.textPrimary,
-  },
-  saveButton: {
-    padding: 4,
-  },
   card: {
     backgroundColor: COLORS.cardBackground,
     borderRadius: 12,
     padding: 16,
-    marginHorizontal: 16,
+    marginHorizontal: 2,
     marginBottom: 16,
+    marginTop: 6,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -278,7 +270,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   cardLabel: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
     color: COLORS.textSecondary,
     textTransform: 'uppercase',
