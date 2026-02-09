@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
 import {
   StyleSheet,
   View,
@@ -17,6 +16,8 @@ import { SwipeableTask } from '../components/SwipeableTask';
 import { COLORS } from '../constants/colors';
 import { FolderSelectorModal } from '../components/FolderSelectorModal';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { TimerModal } from '../components/TimerModal';
+import { ActiveTimerBar } from '../components/ActiveTimerBar';
 
 type AllTasksScreenNavigationProp = StackNavigationProp<RootStackParamList, 'AllTasks'>;
 
@@ -25,9 +26,18 @@ interface Props {
 }
 
 export const AllTasksScreen: React.FC<Props> = ({ navigation }) => {
-  const { tasks, deleteTask, toggleTaskCompletion, loading } = useTasks();
+const { tasks, deleteTask, toggleTaskCompletion, updateTask, loading } = useTasks();
   const { folders } = useFolders();
   const [showFolderSelector, setShowFolderSelector] = useState(false);
+  const [showTimerModal, setShowTimerModal] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [activeTimerTask, setActiveTimerTask] = useState<Task | null>(null);
+  const [lastTap, setLastTap] = useState<number | null>(null);
+
+  useEffect(() => {
+    const timerTask = tasks.find(t => t.timerActive);
+    setActiveTimerTask(timerTask || null);
+  }, [tasks]);
 
   const getFolderName = (folderId: number): string => {
     const folder = folders.find(f => f.id === folderId);
@@ -86,6 +96,70 @@ export const AllTasksScreen: React.FC<Props> = ({ navigation }) => {
     );
   }
 
+  const handleStartTimer = async (taskId: number, minutes: number, usePomodoro: boolean) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    // Stop any existing timer
+    const existingTimer = tasks.find(t => t.timerActive);
+    if (existingTimer) {
+      await updateTask({
+        ...existingTimer,
+        timerActive: false,
+        timerStartedAt: null,
+      });
+    }
+
+    // Start new timer
+    await updateTask({
+      ...task,
+      estimatedMinutes: usePomodoro ? 25 : minutes,
+      timerActive: true,
+      timerStartedAt: new Date().toISOString(),
+    });
+  };
+
+  const handleStopTimer = async () => {
+    if (!activeTimerTask) return;
+
+    await updateTask({
+      ...activeTimerTask,
+      timerActive: false,
+      timerStartedAt: null,
+    });
+  };
+
+  const handleCompleteTimer = async () => {
+    if (!activeTimerTask) return;
+
+    await updateTask({
+      ...activeTimerTask,
+      completed: true,
+      timerActive: false,
+      timerStartedAt: null,
+    });
+  };
+
+  const handleTimerPress = (task: Task) => {
+    setSelectedTask(task);
+    setShowTimerModal(true);
+  };
+
+  const handleTitleDoubleTap = () => {
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300; // milliseconds
+
+    if (lastTap && (now - lastTap) < DOUBLE_TAP_DELAY) {
+      // Double tap detected!
+      Alert.alert('Focus Mode', 'Opening Pomodoro Focus Mode...', [
+        { text: 'OK' }
+      ]);
+      // navigation.navigate('FocusMode'); // Create this screen later
+    } else {
+      setLastTap(now);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.titleContainer}>
@@ -97,7 +171,13 @@ export const AllTasksScreen: React.FC<Props> = ({ navigation }) => {
             <MaterialCommunityIcons name="plus-circle" size={24} color={COLORS.primary} />
         </TouchableOpacity>
         
-        <Text style={styles.title}>All Tasks</Text>
+        <TouchableOpacity 
+          onPress={handleTitleDoubleTap}
+          activeOpacity={0.8}
+          style={{ flex: 1 }}
+        > 
+          <Text style={styles.title}>All Tasks</Text>
+        </TouchableOpacity>
         
         <TouchableOpacity
             style={styles.topFoldersButton}
@@ -107,16 +187,6 @@ export const AllTasksScreen: React.FC<Props> = ({ navigation }) => {
             <MaterialCommunityIcons name="folder-multiple" size={24} color={COLORS.primary} />
         </TouchableOpacity>
       </View>
-      
-      {/* <View style={styles.headerContainer}>
-        <MaterialCommunityIcons
-          name="calendar-check"
-          size={20}
-          color={COLORS.textSecondary}
-          style={styles.headerIcon}
-        />
-        <Text style={styles.header}>Tasks Due Soon</Text>
-      </View> */}
 
       {tasks.length === 0 ? (
         <View style={styles.emptyContainer}>
@@ -132,28 +202,60 @@ export const AllTasksScreen: React.FC<Props> = ({ navigation }) => {
           extraData={tasks}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
-            <View>
-              <View style={styles.folderBadge}>
-                <View 
-                  style={[
-                    styles.folderColorDot, 
-                    { backgroundColor: getFolderColor(item.folderId) }
-                  ]} 
-                />
-                <Text style={styles.folderName}>{getFolderName(item.folderId)}</Text>
-              </View>
-              <SwipeableTask
-                task={item}
-                onPress={() => navigation.navigate('EditTask', { task: item })}
-                onDelete={() => handleDelete(item)}
-                onComplete={() => handleComplete(item)}
+          <View>
+            <View style={styles.folderBadge}>
+              <View 
+                style={[
+                  styles.folderColorDot, 
+                  { backgroundColor: getFolderColor(item.folderId) }
+                ]} 
               />
+              <Text style={styles.folderName}>{getFolderName(item.folderId)}</Text>
+              
+              {/* Timer Button */}
+              {!item.completed && (
+                <TouchableOpacity
+                  onPress={() => handleTimerPress(item)}
+                  style={styles.timerButton}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <MaterialCommunityIcons
+                    name={item.timerActive ? "timer" : "timer-outline"}
+                    size={18}
+                    color={item.timerActive ? COLORS.primary : COLORS.textSecondary}
+                  />
+                </TouchableOpacity>
+              )}
             </View>
-          )}
+            <SwipeableTask
+              task={item}
+              onPress={() => navigation.navigate('EditTask', { task: item })}
+              onDelete={() => handleDelete(item)}
+              onComplete={() => handleComplete(item)}
+            />
+          </View>
+        )}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
         />
       )}
+
+      {/* Active Timer Bar */}
+      {activeTimerTask && (
+        <ActiveTimerBar
+          task={activeTimerTask}
+          onStop={handleStopTimer}
+          onComplete={handleCompleteTimer}
+        />
+      )}
+
+      {/* Timer Modal */}
+      <TimerModal
+        visible={showTimerModal}
+        task={selectedTask}
+        onClose={() => setShowTimerModal(false)}
+        onStartTimer={handleStartTimer}
+      />
 
       <FolderSelectorModal
         visible={showFolderSelector}
@@ -172,6 +274,7 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 16,
     paddingHorizontal: 1,
+    minHeight: 50,
   },
   titleContainer: {
     flexDirection: 'row',
@@ -205,7 +308,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: COLORS.textPrimary,
     textAlign: 'center',
-    flex: 1,
+    // flex: 1,
   },
   headerContainer: {
     flexDirection: 'row',
@@ -254,4 +357,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.textMuted,
   },
+  timerButton: {
+    marginLeft: 8,
+    padding: 4,
+},
 });
