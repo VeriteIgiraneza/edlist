@@ -30,7 +30,7 @@ export const StatsCards: React.FC<Props> = ({ total, selected, totalMinutes }) =
 const styles = StyleSheet.create({
   statsContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
+    paddingHorizontal: 2,
     marginBottom: 8,
     gap: 8,
   },
@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.cardBackground,
     paddingVertical: 2,
-    paddingHorizontal: 16,
+    paddingHorizontal: 2,
     borderRadius: 8,
     flexDirection: 'row',
     alignItems: 'center',

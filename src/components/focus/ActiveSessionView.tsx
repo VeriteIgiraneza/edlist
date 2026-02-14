@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
   progressSection: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 2,
     marginBottom: 32,
   },
   progressText: {
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
   },
   currentTaskCard: {
     backgroundColor: COLORS.cardBackground,
-    marginHorizontal: 20,
+    marginHorizontal: 2,
     padding: 24,
     borderRadius: 16,
     marginBottom: 40,
