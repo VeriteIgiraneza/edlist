@@ -1,20 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import {
-  StyleSheet,
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  TextInput,
-  Alert,
-  ScrollView,
-} from 'react-native';
+import { Alert } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { RootStackParamList, Task } from '../types';
 import { useTasks } from '../contexts/TaskContext';
 import { useFolders } from '../contexts/FolderContext';
-import { COLORS } from '../constants/colors';
+import { PlanningView } from '../components/focus/PlanningView';
+import { ActiveSessionView } from '../components/focus/ActiveSessionView';
+import { useSessionTimer } from '../hooks/useSessionTimer';
 
 type FocusSessionScreenNavigationProp = StackNavigationProp<RootStackParamList, 'FocusSession'>;
 
@@ -27,48 +19,101 @@ interface TaskWithTime extends Task {
   selected: boolean;
 }
 
+type TimePeriod = 'today' | 'week' | 'month';
+
 export const FocusSessionScreen: React.FC<Props> = ({ navigation }) => {
   const { tasks, updateTask } = useTasks();
   const { folders } = useFolders();
-  
+
+  const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('today');
   const [sessionTasks, setSessionTasks] = useState<TaskWithTime[]>([]);
   const [isSessionActive, setIsSessionActive] = useState(false);
-  const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
   const [completedTasks, setCompletedTasks] = useState<string[]>([]);
-  const [totalTimeSpent, setTotalTimeSpent] = useState(0);
+
+  const selectedTasksWithTime = sessionTasks.filter(t => t.selected && t.sessionMinutes);
+
+  const {
+    currentTaskIndex,
+    timeLeft,
+    isPaused,
+    totalTimeSpent,
+    setIsPaused,
+    startTimer,
+    reset,
+    handleTaskComplete: timerTaskComplete,
+  } = useSessionTimer(
+    isSessionActive,
+    selectedTasksWithTime,
+    () => endSession(),
+    () => completeCurrentTask()
+  );
 
   useEffect(() => {
-    // Initialize with incomplete tasks
-    const incompleteTasks = tasks.filter(t => !t.completed).map(task => ({
+    loadTasksForPeriod();
+  }, [tasks, selectedPeriod]);
+
+  const loadTasksForPeriod = () => {
+    const now = new Date();
+    const incompleteTasks = tasks.filter(t => !t.completed);
+
+    let filteredTasks: Task[] = [];
+
+    if (selectedPeriod === 'today') {
+      filteredTasks = incompleteTasks.filter(task => {
+        if (!task.dueDate) return false;
+        const dueDate = new Date(task.dueDate);
+        return dueDate.toDateString() === now.toDateString();
+      });
+    } else if (selectedPeriod === 'week') {
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - now.getDay());
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 7);
+
+      filteredTasks = incompleteTasks.filter(task => {
+        if (!task.dueDate) return false;
+        const dueDate = new Date(task.dueDate);
+        return dueDate >= weekStart && dueDate < weekEnd;
+      });
+    } else if (selectedPeriod === 'month') {
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+      filteredTasks = incompleteTasks.filter(task => {
+        if (!task.dueDate) return false;
+        const dueDate = new Date(task.dueDate);
+        return dueDate >= monthStart && dueDate <= monthEnd;
+      });
+    }
+
+    const tasksWithTime = filteredTasks.map(task => ({
       ...task,
       sessionMinutes: task.estimatedMinutes || undefined,
       selected: false,
     }));
-    setSessionTasks(incompleteTasks);
-  }, [tasks]);
 
-  useEffect(() => {
-    if (!isSessionActive || isPaused || timeLeft <= 0) return;
+    setSessionTasks(tasksWithTime);
+  };
 
-    const interval = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          handleTaskComplete();
-          return 0;
-        }
-        return prev - 1;
-      });
-      setTotalTimeSpent(prev => prev + 1);
-    }, 1000);
+  const getStats = () => {
+    const total = sessionTasks.length;
+    const selected = sessionTasks.filter(t => t.selected).length;
+    const withTime = sessionTasks.filter(t => t.selected && t.sessionMinutes).length;
+    const totalMinutes = sessionTasks
+      .filter(t => t.selected && t.sessionMinutes)
+      .reduce((sum, t) => sum + (t.sessionMinutes || 0), 0);
 
-    return () => clearInterval(interval);
-  }, [isSessionActive, isPaused, timeLeft]);
+    return { total, selected, withTime, totalMinutes };
+  };
 
   const getFolderName = (folderId: number): string => {
     const folder = folders.find(f => f.id === folderId);
     return folder ? folder.name : 'Unknown';
+  };
+
+  const getFolderColor = (folderId: number): string => {
+    const folder = folders.find(f => f.id === folderId);
+    return folder ? folder.color : '#999';
   };
 
   const toggleTaskSelection = (taskId: number) => {
@@ -88,56 +133,57 @@ export const FocusSessionScreen: React.FC<Props> = ({ navigation }) => {
     );
   };
 
+  const selectAll = () => {
+    setSessionTasks(prev => prev.map(task => ({ ...task, selected: true })));
+  };
+
+  const deselectAll = () => {
+    setSessionTasks(prev => prev.map(task => ({ ...task, selected: false })));
+  };
+
   const startSession = () => {
     const selected = sessionTasks.filter(t => t.selected && t.sessionMinutes);
-    
+
     if (selected.length === 0) {
-      Alert.alert('No Tasks Selected', 'Please select at least one task and set time.');
+      Alert.alert('No Tasks Ready', 'Please select tasks and assign time to each.');
       return;
     }
 
     setIsSessionActive(true);
-    setCurrentTaskIndex(0);
-    setTimeLeft((selected[0].sessionMinutes || 0) * 60);
+    startTimer();
     setCompletedTasks([]);
-    setTotalTimeSpent(0);
   };
 
-  const handleTaskComplete = async () => {
-    const selected = sessionTasks.filter(t => t.selected && t.sessionMinutes);
-    const currentTask = selected[currentTaskIndex];
+  const completeCurrentTask = async () => {
+    const currentTask = selectedTasksWithTime[currentTaskIndex];
 
     if (currentTask) {
-      // Mark task as complete
       await updateTask({
         ...currentTask,
         completed: true,
+        actualMinutes: Math.floor(((currentTask.sessionMinutes || 0) * 60 - timeLeft) / 60),
       });
-      
-      setCompletedTasks(prev => [...prev, currentTask.name]);
 
-      // Move to next task
-      if (currentTaskIndex < selected.length - 1) {
-        const nextIndex = currentTaskIndex + 1;
-        setCurrentTaskIndex(nextIndex);
-        setTimeLeft((selected[nextIndex].sessionMinutes || 0) * 60);
-      } else {
-        // Session complete
-        endSession();
-      }
+      setCompletedTasks(prev => [...prev, currentTask.name]);
     }
   };
 
   const endSession = () => {
     setIsSessionActive(false);
+    reset();
     showSummary();
   };
 
   const showSummary = () => {
     const mins = Math.floor(totalTimeSpent / 60);
+    const hrs = Math.floor(mins / 60);
+    const remainingMins = mins % 60;
+
+    const timeString = hrs > 0 ? `${hrs}h ${remainingMins}m` : `${mins} minutes`;
+
     Alert.alert(
-      '🎉 Session Complete!',
-      `Completed ${completedTasks.length} tasks in ${mins} minutes!\n\n${completedTasks.join('\n')}`,
+      'Session Complete!',
+      `Completed ${completedTasks.length} tasks in ${timeString}!\n\n✓ ${completedTasks.join('\n✓ ')}`,
       [{ text: 'Done', onPress: () => navigation.goBack() }]
     );
   };
@@ -153,376 +199,59 @@ export const FocusSessionScreen: React.FC<Props> = ({ navigation }) => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const quickTimes = [15, 25, 30, 45, 60];
+  const formatDueDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return 'Today';
+    } else if (date.toDateString() === tomorrow.toDateString()) {
+      return 'Tomorrow';
+    } else {
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+  };
 
   if (isSessionActive) {
-    const selected = sessionTasks.filter(t => t.selected && t.sessionMinutes);
-    const currentTask = selected[currentTaskIndex];
-    const progress = ((currentTaskIndex + 1) / selected.length) * 100;
+    const currentTask = selectedTasksWithTime[currentTaskIndex];
+    const upcomingTasks = selectedTasksWithTime.slice(currentTaskIndex + 1);
 
     return (
-      <View style={styles.activeContainer}>
-        {/* Header */}
-        <View style={styles.activeHeader}>
-          <Text style={styles.sessionTitle}>Focus Session</Text>
-          <TouchableOpacity onPress={endSession}>
-            <MaterialCommunityIcons name="close" size={28} color={COLORS.textPrimary} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Progress */}
-        <View style={styles.progressSection}>
-          <Text style={styles.progressText}>
-            Task {currentTaskIndex + 1} of {selected.length}
-          </Text>
-          <View style={styles.progressBarContainer}>
-            <View style={[styles.progressBar, { width: `${progress}%` }]} />
-          </View>
-        </View>
-
-        {/* Current Task */}
-        <View style={styles.currentTaskCard}>
-          <Text style={styles.currentTaskLabel}>Current Task</Text>
-          <Text style={styles.currentTaskName}>{currentTask?.name}</Text>
-          <Text style={styles.currentTaskFolder}>
-            📁 {getFolderName(currentTask?.folderId || 0)}
-          </Text>
-        </View>
-
-        {/* Timer */}
-        <View style={styles.timerSection}>
-          <Text style={styles.timerDisplay}>{formatTime(timeLeft)}</Text>
-          
-          <View style={styles.timerControls}>
-            <TouchableOpacity
-              style={styles.controlButton}
-              onPress={() => setIsPaused(!isPaused)}
-            >
-              <MaterialCommunityIcons
-                name={isPaused ? 'play' : 'pause'}
-                size={32}
-                color={COLORS.textPrimary}
-              />
-              <Text style={styles.controlButtonText}>
-                {isPaused ? 'Resume' : 'Pause'}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.controlButton}
-              onPress={handleTaskComplete}
-            >
-              <MaterialCommunityIcons
-                name="check-circle"
-                size={32}
-                color={COLORS.success}
-              />
-              <Text style={styles.controlButtonText}>Complete</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Upcoming Tasks */}
-        {currentTaskIndex < selected.length - 1 && (
-          <View style={styles.upcomingSection}>
-            <Text style={styles.upcomingTitle}>Up Next:</Text>
-            {selected.slice(currentTaskIndex + 1).map((task, index) => (
-              <Text key={task.id} style={styles.upcomingTask}>
-                {index + 1}. {task.name} ({task.sessionMinutes}min)
-              </Text>
-            ))}
-          </View>
-        )}
-      </View>
+      <ActiveSessionView
+        currentTask={currentTask}
+        currentTaskIndex={currentTaskIndex}
+        totalTasks={selectedTasksWithTime.length}
+        timeLeft={timeLeft}
+        isPaused={isPaused}
+        upcomingTasks={upcomingTasks}
+        getFolderName={getFolderName}
+        getFolderColor={getFolderColor}
+        formatDueDate={formatDueDate}
+        formatTime={formatTime}
+        onPauseResume={() => setIsPaused(!isPaused)}
+        onComplete={timerTaskComplete}
+        onEndSession={endSession}
+      />
     );
   }
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <MaterialCommunityIcons name="close" size={28} color={COLORS.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.title}>Focus Session</Text>
-        <View style={{ width: 28 }} />
-      </View>
-
-      <Text style={styles.subtitle}>
-        Select tasks and assign time for focused work
-      </Text>
-
-      {/* Task List */}
-      <FlatList
-        data={sessionTasks}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <View style={styles.taskItem}>
-            <TouchableOpacity
-              style={styles.taskLeft}
-              onPress={() => toggleTaskSelection(item.id)}
-              activeOpacity={0.7}
-            >
-              <MaterialCommunityIcons
-                name={item.selected ? 'checkbox-marked' : 'checkbox-blank-outline'}
-                size={24}
-                color={item.selected ? COLORS.primary : COLORS.textSecondary}
-              />
-              <View style={styles.taskInfo}>
-                <Text style={styles.taskName}>{item.name}</Text>
-                <Text style={styles.taskFolder}>📁 {getFolderName(item.folderId)}</Text>
-              </View>
-            </TouchableOpacity>
-
-            {item.selected && (
-              <View style={styles.timeInputSection}>
-                <TextInput
-                  style={styles.timeInput}
-                  value={item.sessionMinutes?.toString() || ''}
-                  onChangeText={(text) => updateTaskTime(item.id, text)}
-                  keyboardType="number-pad"
-                  placeholder="30"
-                  placeholderTextColor={COLORS.textMuted}
-                />
-                <Text style={styles.minText}>min</Text>
-                
-                {/* Quick Time Buttons */}
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickTimeScroll}>
-                  {quickTimes.map(time => (
-                    <TouchableOpacity
-                      key={time}
-                      style={styles.quickTimeButton}
-                      onPress={() => updateTaskTime(item.id, time.toString())}
-                    >
-                      <Text style={styles.quickTimeText}>{time}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-            )}
-          </View>
-        )}
-        contentContainerStyle={styles.listContent}
-      />
-
-      {/* Start Button */}
-      <TouchableOpacity style={styles.startButton} onPress={startSession}>
-        <MaterialCommunityIcons name="play-circle" size={28} color={COLORS.background} />
-        <Text style={styles.startButtonText}>
-          Start Focus Session ({sessionTasks.filter(t => t.selected).length} tasks)
-        </Text>
-      </TouchableOpacity>
-    </View>
+    <PlanningView
+      selectedPeriod={selectedPeriod}
+      onPeriodChange={setSelectedPeriod}
+      sessionTasks={sessionTasks}
+      stats={getStats()}
+      onToggleSelection={toggleTaskSelection}
+      onUpdateTime={updateTaskTime}
+      onSelectAll={selectAll}
+      onDeselectAll={deselectAll}
+      onStartSession={startSession}
+      getFolderName={getFolderName}
+      getFolderColor={getFolderColor}
+      formatDueDate={formatDueDate}
+      onClose={() => navigation.goBack()}
+    />
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 16,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.textPrimary,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    paddingHorizontal: 20,
-    marginBottom: 16,
-  },
-  listContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 100,
-  },
-  taskItem: {
-    backgroundColor: COLORS.cardBackground,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-  },
-  taskLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  taskInfo: {
-    flex: 1,
-  },
-  taskName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginBottom: 4,
-  },
-  taskFolder: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-  },
-  timeInputSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.darkGray,
-    gap: 8,
-  },
-  timeInput: {
-    backgroundColor: COLORS.background,
-    borderRadius: 8,
-    padding: 8,
-    width: 60,
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: COLORS.textPrimary,
-    textAlign: 'center',
-  },
-  minText: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-  },
-  quickTimeScroll: {
-    flex: 1,
-  },
-  quickTimeButton: {
-    backgroundColor: COLORS.darkGray,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    marginRight: 6,
-  },
-  quickTimeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  startButton: {
-    position: 'absolute',
-    bottom: 20,
-    left: 20,
-    right: 20,
-    backgroundColor: COLORS.primary,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    borderRadius: 12,
-    gap: 8,
-  },
-  startButtonText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.background,
-  },
-  // Active Session Styles
-  activeContainer: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    paddingTop: 60,
-  },
-  activeHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 24,
-  },
-  sessionTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.textPrimary,
-  },
-  progressSection: {
-    paddingHorizontal: 20,
-    marginBottom: 32,
-  },
-  progressText: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  progressBarContainer: {
-    height: 8,
-    backgroundColor: COLORS.darkGray,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressBar: {
-    height: '100%',
-    backgroundColor: COLORS.primary,
-    borderRadius: 4,
-  },
-  currentTaskCard: {
-    backgroundColor: COLORS.cardBackground,
-    marginHorizontal: 20,
-    padding: 24,
-    borderRadius: 16,
-    marginBottom: 40,
-  },
-  currentTaskLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 12,
-  },
-  currentTaskName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.textPrimary,
-    marginBottom: 8,
-  },
-  currentTaskFolder: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-  },
-  timerSection: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  timerDisplay: {
-    fontSize: 72,
-    fontWeight: 'bold',
-    color: COLORS.primary,
-    marginBottom: 32,
-  },
-  timerControls: {
-    flexDirection: 'row',
-    gap: 24,
-  },
-  controlButton: {
-    alignItems: 'center',
-    gap: 8,
-  },
-  controlButtonText: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    fontWeight: '600',
-  },
-  upcomingSection: {
-    paddingHorizontal: 20,
-  },
-  upcomingTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-    marginBottom: 12,
-  },
-  upcomingTask: {
-    fontSize: 14,
-    color: COLORS.textPrimary,
-    marginBottom: 8,
-  },
-}); 

@@ -18,6 +18,7 @@ import { EditTaskScreen } from './src/screens/EditTaskScreen';
 import { AllTasksScreen } from './src/screens/AllTasksScreen';
 
 import { COLORS } from './src/constants/colors';
+import { FocusSessionScreen } from './src/screens/FocusSessionScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -88,6 +89,14 @@ export default function App() {
                     title: 'Edit Task',
                     presentation: 'modal',
                     headerTitleAlign: 'center',
+                  }}
+                />
+                <Stack.Screen
+                  name="FocusSession"
+                  component={FocusSessionScreen}
+                  options={{
+                    headerShown: false,
+                    presentation: 'modal',
                   }}
                 />
               </Stack.Navigator>

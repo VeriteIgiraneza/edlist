@@ -151,10 +151,7 @@ const { tasks, deleteTask, toggleTaskCompletion, updateTask, loading } = useTask
 
     if (lastTap && (now - lastTap) < DOUBLE_TAP_DELAY) {
       // Double tap detected!
-      Alert.alert('Focus Mode', 'Opening Pomodoro Focus Mode...', [
-        { text: 'OK' }
-      ]);
-      // navigation.navigate('FocusMode'); // Create this screen later
+      navigation.navigate('FocusSession');
     } else {
       setLastTap(now);
     }
