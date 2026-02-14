@@ -91,15 +91,15 @@ export const PlanningView: React.FC<Props> = ({
       {/* Statistics */}
       <StatsCards total={stats.total} selected={stats.selected} totalMinutes={stats.totalMinutes} />
 
-      {/* Quick Actions */}
-      <View style={styles.quickActions}>
+      {/* Quick Actions */}{/*I have remove this for now */}
+      {/* <View style={styles.quickActions}>
         <TouchableOpacity style={styles.quickActionButton} onPress={onSelectAll}>
           <Text style={styles.quickActionText}>Select All</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.quickActionButton} onPress={onDeselectAll}>
           <Text style={styles.quickActionText}>Clear All</Text>
         </TouchableOpacity>
-      </View>
+      </View> */}
 
       {/* Task List */}
       {sessionTasks.length === 0 ? (
@@ -186,7 +186,8 @@ const styles = StyleSheet.create({
   periodButtonTextActive: {
     color: COLORS.background,
   },
-  quickActions: {
+  /*Quick Actions that I have commented above*/
+  /*quickActions: {
     flexDirection: 'row',
     paddingHorizontal: 16,
     marginBottom: 16,
@@ -204,7 +205,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: COLORS.textPrimary,
-  },
+  },*/
   listContent: {
     paddingHorizontal: 16,
     paddingBottom: 100,
