@@ -163,13 +163,13 @@ const styles = StyleSheet.create({
   },
   periodSelector: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    marginBottom: 20,
+    paddingHorizontal:16,
+    marginBottom: 8,
     gap: 8,
   },
   periodButton: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 2,
     paddingHorizontal: 16,
     borderRadius: 8,
     backgroundColor: COLORS.cardBackground,
