@@ -163,14 +163,14 @@ const styles = StyleSheet.create({
   },
   periodSelector: {
     flexDirection: 'row',
-    paddingHorizontal:16,
+    paddingHorizontal:2,
     marginBottom: 8,
     gap: 8,
   },
   periodButton: {
     flex: 1,
     paddingVertical: 2,
-    paddingHorizontal: 16,
+    paddingHorizontal: 2,
     borderRadius: 8,
     backgroundColor: COLORS.cardBackground,
     alignItems: 'center',
@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },*/
   listContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 2,
     paddingBottom: 100,
   },
   emptyContainer: {
