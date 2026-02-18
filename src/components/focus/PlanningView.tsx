@@ -32,6 +32,7 @@ interface Props {
   getFolderColor: (folderId: number) => string;
   formatDueDate: (dateString: string) => string;
   onClose: () => void;
+  onDoubleTapTitle: () => void;
 }
 
 export const PlanningView: React.FC<Props> = ({
@@ -48,6 +49,7 @@ export const PlanningView: React.FC<Props> = ({
   getFolderColor,
   formatDueDate,
   onClose,
+  onDoubleTapTitle,
 }) => {
   return (
     <View style={styles.container}>
@@ -56,7 +58,9 @@ export const PlanningView: React.FC<Props> = ({
         <TouchableOpacity onPress={onClose}>
           <MaterialCommunityIcons name="chevron-left" size={32} color={COLORS.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.title}>Focus Session</Text>
+        <TouchableOpacity onPress={onDoubleTapTitle} activeOpacity={0.8}>
+          <Text style={styles.title}>Focus Session</Text>
+        </TouchableOpacity>
         <View style={{ width: 32 }} />
       </View>
 
@@ -153,7 +157,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'android' ? 40 : 16,
+    paddingTop: Platform.OS === 'android' ? 55 : 16,
     paddingBottom: 16,
   },
   title: {

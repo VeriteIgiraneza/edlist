@@ -214,6 +214,19 @@ export const FocusSessionScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
+const [lastTap, setLastTap] = useState<number | null>(null);
+
+  const handleTitleDoubleTap = () => {
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300;
+
+    if (lastTap && (now - lastTap) < DOUBLE_TAP_DELAY) {
+      navigation.goBack();
+    } else {
+      setLastTap(now);
+    }
+  };
+
   if (isSessionActive) {
     const currentTask = selectedTasksWithTime[currentTaskIndex];
     const upcomingTasks = selectedTasksWithTime.slice(currentTaskIndex + 1);
@@ -252,6 +265,7 @@ export const FocusSessionScreen: React.FC<Props> = ({ navigation }) => {
       getFolderColor={getFolderColor}
       formatDueDate={formatDueDate}
       onClose={() => navigation.goBack()}
+      onDoubleTapTitle={handleTitleDoubleTap}
     />
   );
 };
