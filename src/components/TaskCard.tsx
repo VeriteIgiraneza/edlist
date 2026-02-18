@@ -88,19 +88,26 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onPress, onLongPress }
             <Animated.Text
               style={[
                 styles.taskName,
-                { color: getTaskNameColor(), transform: [{ translateX: scrollAnim }] },
+                { 
+                  color: getTaskNameColor(), 
+                  transform: [{ translateX: scrollAnim }],
+                  ...(textWidth > containerWidth ? { width: textWidth + 20 } : {}),
+                },
                 task.completed && styles.completedText,
               ]}
               onTextLayout={(e) => {
                 if (e.nativeEvent?.lines?.length > 0) {
-                  const line = e.nativeEvent.lines[0];
-                  if (line && line.width) {
-                    setTextWidth(Math.ceil(line.width));
+                  let totalWidth = 0;
+                  for (const line of e.nativeEvent.lines) {
+                    if (line && line.width) {
+                      totalWidth += line.width;
+                    }
+                  }
+                  if (totalWidth > 0) {
+                    setTextWidth(Math.ceil(totalWidth));
                   }
                 }
               }}
-              numberOfLines={1}
-              ellipsizeMode="clip"
             >
               {task.name}
             </Animated.Text>
@@ -185,6 +192,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 4,
     flexWrap: 'nowrap',
+    maxHeight: 20,
   },
   completedText: {
     textDecorationLine: 'line-through',
