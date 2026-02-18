@@ -141,7 +141,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onPress, onLongPress }
           )}
         </View>
         
-        {hasReminder && (
+        {(task.reminder !== null && task.reminder !== '') && (
           <MaterialCommunityIcons
             name="bell"
             size={24}
