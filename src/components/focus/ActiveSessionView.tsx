@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Task } from '../../types';
 import { COLORS } from '../../constants/colors';
@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    paddingTop: 60,
+    paddingTop: Platform.OS === 'android' ? 80 : 60,
   },
   header: {
     flexDirection: 'row',

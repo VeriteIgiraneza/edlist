@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList, Task } from '../types';
@@ -277,7 +278,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 40,
+    marginTop: Platform.OS === 'android' ? 60 : 40,
     marginBottom: 16,
     paddingHorizontal: 16,
     position: 'relative',

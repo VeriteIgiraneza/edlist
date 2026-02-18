@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, Text, FlatList, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet, View, Text, FlatList, TouchableOpacity, Alert, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Task } from '../../types';
 import { COLORS } from '../../constants/colors';
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 60,
+    paddingTop: Platform.OS === 'android' ? 80 : 60,
     paddingBottom: 16,
   },
   title: {

@@ -21,25 +21,34 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onPress, onLongPress }
   const [containerWidth, setContainerWidth] = useState(0);
 
   useEffect(() => {
-    if (textWidth > containerWidth && containerWidth > 0) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(scrollAnim, {
-            toValue: -(textWidth - containerWidth + 20),
-            duration: (textWidth / 30) * 1000,
-            useNativeDriver: true,
-          }),
-          Animated.delay(500),
-          Animated.timing(scrollAnim, {
-            toValue: 0,
-            duration: 500,
-            useNativeDriver: true,
-          }),
-          Animated.delay(1000),
-        ])
-      ).start();
+    if (textWidth > containerWidth && containerWidth > 0 && textWidth > 0) {
+      const timer = setTimeout(() => {
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(scrollAnim, {
+              toValue: -(textWidth - containerWidth + 20),
+              duration: (textWidth / 100) * 1000,
+              useNativeDriver: true,
+            }),
+            Animated.delay(500),
+            Animated.timing(scrollAnim, {
+              toValue: 0,
+              duration: 500,
+              useNativeDriver: true,
+            }),
+            Animated.delay(1000),
+          ])
+        ).start();
+      }, 200);
+
+      return () => {
+        clearTimeout(timer);
+        scrollAnim.setValue(0);
+      };
+    } else {
+      scrollAnim.setValue(0);
     }
-  }, [textWidth, containerWidth]);
+  }, [textWidth, containerWidth, task.id]);
 
   const getDueDateColor = () => {
     if (task.completed) return COLORS.textMuted;
@@ -83,9 +92,15 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onPress, onLongPress }
                 task.completed && styles.completedText,
               ]}
               onTextLayout={(e) => {
-                const width = e.nativeEvent.lines[0]?.width || 0;
-                setTextWidth(width);
+                if (e.nativeEvent?.lines?.length > 0) {
+                  const line = e.nativeEvent.lines[0];
+                  if (line && line.width) {
+                    setTextWidth(Math.ceil(line.width));
+                  }
+                }
               }}
+              numberOfLines={1}
+              ellipsizeMode="clip"
             >
               {task.name}
             </Animated.Text>
@@ -159,6 +174,8 @@ const styles = StyleSheet.create({
   },
   textContainerWrapper: {
     flex: 1,
+    overflow: 'hidden',
+    position: 'relative',
   },
   textContainer: {
     overflow: 'hidden',
