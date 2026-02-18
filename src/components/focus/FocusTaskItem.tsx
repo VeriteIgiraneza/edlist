@@ -1,5 +1,5 @@
-import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+import React, { useRef, useState, useEffect } from 'react';
+import { StyleSheet, View, Text, TouchableOpacity, TextInput, ScrollView, Animated } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Task } from '../../types';
 import { COLORS } from '../../constants/colors';
@@ -41,9 +41,7 @@ export const FocusTaskItem: React.FC<Props> = ({
           color={task.selected ? COLORS.primary : COLORS.textSecondary}
         />
         <View style={styles.taskInfo}>
-          <Text style={[styles.taskName, task.selected && styles.taskNameSelected]}>
-            {task.name}
-          </Text>
+          <MarqueeTaskName name={task.name} selected={task.selected} />
           <View style={styles.taskMetaRow}>
             <View style={[styles.folderDot, { backgroundColor: folderColor }]} />
             <Text style={styles.taskFolder}>{folderName}</Text>
@@ -96,6 +94,76 @@ export const FocusTaskItem: React.FC<Props> = ({
   );
 };
 
+const MarqueeTaskName: React.FC<{ name: string; selected: boolean }> = ({ name, selected }) => {
+  const scrollAnim = useRef(new Animated.Value(0)).current;
+  const [textWidth, setTextWidth] = useState(0);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useEffect(() => {
+    if (textWidth > containerWidth && containerWidth > 0 && textWidth > 0) {
+      const timer = setTimeout(() => {
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(scrollAnim, {
+              toValue: -(textWidth - containerWidth + 20),
+              duration: (textWidth / 100) * 1000,
+              useNativeDriver: true,
+            }),
+            Animated.delay(500),
+            Animated.timing(scrollAnim, {
+              toValue: 0,
+              duration: 500,
+              useNativeDriver: true,
+            }),
+            Animated.delay(1000),
+          ])
+        ).start();
+      }, 200);
+
+      return () => {
+        clearTimeout(timer);
+        scrollAnim.setValue(0);
+      };
+    } else {
+      scrollAnim.setValue(0);
+    }
+  }, [textWidth, containerWidth]);
+
+  return (
+    <View
+      style={{ overflow: 'hidden', width: '100%' }}
+      onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
+    >
+      <Animated.Text
+        style={[
+          styles.taskName,
+          selected && styles.taskNameSelected,
+          {
+            transform: [{ translateX: scrollAnim }],
+            ...(textWidth > containerWidth ? { width: textWidth + 20 } : {}),
+          },
+        ]}
+        // numberOfLines={1}
+        onTextLayout={(e) => {
+          if (e.nativeEvent?.lines?.length > 0) {
+            let totalWidth = 0;
+            for (const line of e.nativeEvent.lines) {
+              if (line && line.width) {
+                totalWidth += line.width;
+              }
+            }
+            if (totalWidth > 0) {
+              setTextWidth(Math.ceil(totalWidth));
+            }
+          }
+        }}
+      >
+        {name}
+      </Animated.Text>
+    </View>
+  );
+};
+
 const styles = StyleSheet.create({
   taskItem: {
     backgroundColor: COLORS.cardBackground,
@@ -116,6 +184,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.textPrimary,
     marginBottom: 6,
+    flexWrap: 'nowrap',
+    maxHeight: 22,
   },
   taskNameSelected: {
     color: COLORS.primary,
