@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'android' ? 55 : 16,
+    paddingTop: Platform.OS === 'android' ? 55 : 60,
     paddingBottom: 16,
   },
   title: {

@@ -96,7 +96,7 @@ export default function App() {
                   component={FocusSessionScreen}
                   options={{
                     headerShown: false,
-                    presentation: 'modal',
+                    // presentation: 'modal',
                   }}
                 />
               </Stack.Navigator>
