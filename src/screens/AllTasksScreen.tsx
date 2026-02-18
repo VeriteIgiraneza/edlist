@@ -324,8 +324,9 @@ const styles = StyleSheet.create({
   folderBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 0,
     marginLeft: 16,
+    marginTop: 2,
   },
   folderColorDot: {
     width: 8,

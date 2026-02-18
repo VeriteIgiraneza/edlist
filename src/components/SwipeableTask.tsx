@@ -78,16 +78,18 @@ export const SwipeableTask: React.FC<SwipeableTaskProps> = ({
   };
 
   return (
-    <Swipeable
-      ref={swipeableRef}
-      friction={2}
-      leftThreshold={80}
-      rightThreshold={80}
-      renderLeftActions={renderLeftActions}
-      renderRightActions={renderRightActions}
-    >
-      <TaskCard task={task} onPress={onPress} />
-    </Swipeable>
+    <View style={{ marginBottom: 8 }}>
+      <Swipeable
+        ref={swipeableRef}
+        friction={2}
+        leftThreshold={80}
+        rightThreshold={80}
+        renderLeftActions={renderLeftActions}
+        renderRightActions={renderRightActions}
+      >
+        <TaskCard task={task} onPress={onPress} />
+      </Swipeable>
+    </View>
   );
 };
 
