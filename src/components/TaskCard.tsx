@@ -189,7 +189,8 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   taskName: {
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: '600',
     marginBottom: 4,
     flexWrap: 'nowrap',
     maxHeight: 20,
