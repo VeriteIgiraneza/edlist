@@ -24,7 +24,8 @@ interface Props {
     totalMinutes: number;
   };
   onToggleSelection: (taskId: number) => void;
-  onUpdateTime: (taskId: number, minutes: string) => void;
+  onUpdateStartTime: (taskId: number, time: Date) => void;
+  onUpdateEndTime: (taskId: number, time: Date) => void;
   onSelectAll: () => void;
   onDeselectAll: () => void;
   onStartSession: () => void;
@@ -41,7 +42,8 @@ export const PlanningView: React.FC<Props> = ({
   sessionTasks,
   stats,
   onToggleSelection,
-  onUpdateTime,
+  onUpdateStartTime,
+  onUpdateEndTime,
   onSelectAll,
   onDeselectAll,
   onStartSession,
@@ -127,7 +129,8 @@ export const PlanningView: React.FC<Props> = ({
               folderColor={getFolderColor(item.folderId)}
               formatDueDate={formatDueDate}
               onToggleSelection={onToggleSelection}
-              onUpdateTime={onUpdateTime}
+              onUpdateStartTime={onUpdateStartTime}
+              onUpdateEndTime={onUpdateEndTime}
             />
           )}
           contentContainerStyle={styles.listContent}

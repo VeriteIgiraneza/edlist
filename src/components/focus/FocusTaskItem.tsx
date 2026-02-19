@@ -1,11 +1,14 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, TextInput, ScrollView, Animated } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Animated, Platform } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Task } from '../../types';
 import { COLORS } from '../../constants/colors';
 
 interface TaskWithTime extends Task {
   sessionMinutes?: number;
+  startTime?: Date;
+  endTime?: Date;
   selected: boolean;
 }
 
@@ -15,10 +18,88 @@ interface Props {
   folderColor: string;
   formatDueDate: (dateString: string) => string;
   onToggleSelection: (taskId: number) => void;
-  onUpdateTime: (taskId: number, minutes: string) => void;
+  onUpdateStartTime: (taskId: number, time: Date) => void;
+  onUpdateEndTime: (taskId: number, time: Date) => void;
 }
 
-const QUICK_TIMES = [15, 25, 30, 45, 60];
+const formatTimeDisplay = (date?: Date): string => {
+  if (!date) return '--:--';
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
+
+const TimeRangePicker: React.FC<{
+  taskId: number;
+  startTime?: Date;
+  endTime?: Date;
+  sessionMinutes?: number;
+  onUpdateStartTime: (taskId: number, time: Date) => void;
+  onUpdateEndTime: (taskId: number, time: Date) => void;
+}> = ({ taskId, startTime, endTime, sessionMinutes, onUpdateStartTime, onUpdateEndTime }) => {
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
+
+  const handleStartChange = (_: any, selectedTime?: Date) => {
+    setShowStartPicker(false);
+    if (selectedTime) {
+      onUpdateStartTime(taskId, selectedTime);
+    }
+  };
+
+  const handleEndChange = (_: any, selectedTime?: Date) => {
+    setShowEndPicker(false);
+    if (selectedTime) {
+      onUpdateEndTime(taskId, selectedTime);
+    }
+  };
+
+  return (
+    <View style={styles.timeInputSection}>
+      <View style={styles.timeRangeRow}>
+        <TouchableOpacity
+          style={styles.timePickerButton}
+          onPress={() => setShowStartPicker(true)}
+        >
+          <MaterialCommunityIcons name="clock-start" size={18} color={COLORS.primary} />
+          <Text style={styles.timePickerLabel}>Start</Text>
+          <Text style={styles.timePickerValue}>{formatTimeDisplay(startTime)}</Text>
+        </TouchableOpacity>
+
+        <MaterialCommunityIcons name="arrow-right" size={20} color={COLORS.textMuted} />
+
+        <TouchableOpacity
+          style={styles.timePickerButton}
+          onPress={() => setShowEndPicker(true)}
+        >
+          <MaterialCommunityIcons name="clock-end" size={18} color={COLORS.primary} />
+          <Text style={styles.timePickerLabel}>End</Text>
+          <Text style={styles.timePickerValue}>{formatTimeDisplay(endTime)}</Text>
+        </TouchableOpacity>
+      </View>
+
+      {sessionMinutes != null && sessionMinutes > 0 && (
+        <Text style={styles.durationText}>{sessionMinutes} min session</Text>
+      )}
+
+      {showStartPicker && (
+        <DateTimePicker
+          value={startTime || new Date()}
+          mode="time"
+          display="default"
+          onChange={handleStartChange}
+        />
+      )}
+
+      {showEndPicker && (
+        <DateTimePicker
+          value={endTime || new Date()}
+          mode="time"
+          display="default"
+          onChange={handleEndChange}
+        />
+      )}
+    </View>
+  );
+};
 
 export const FocusTaskItem: React.FC<Props> = ({
   task,
@@ -26,7 +107,8 @@ export const FocusTaskItem: React.FC<Props> = ({
   folderColor,
   formatDueDate,
   onToggleSelection,
-  onUpdateTime,
+  onUpdateStartTime,
+  onUpdateEndTime,
 }) => {
   return (
     <View style={styles.taskItem}>
@@ -56,39 +138,14 @@ export const FocusTaskItem: React.FC<Props> = ({
       </TouchableOpacity>
 
       {task.selected && (
-        <View style={styles.timeInputSection}>
-          <View style={styles.timeInputRow}>
-            <TextInput
-              style={styles.timeInput}
-              value={task.sessionMinutes?.toString() || ''}
-              onChangeText={(text) => onUpdateTime(task.id, text)}
-              keyboardType="number-pad"
-              placeholder="30"
-              placeholderTextColor={COLORS.textMuted}
-            />
-            <Text style={styles.minText}>min</Text>
-          </View>
-
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickTimeScroll}>
-            {QUICK_TIMES.map(time => (
-              <TouchableOpacity
-                key={time}
-                style={[
-                  styles.quickTimeButton,
-                  task.sessionMinutes === time && styles.quickTimeButtonActive
-                ]}
-                onPress={() => onUpdateTime(task.id, time.toString())}
-              >
-                <Text style={[
-                  styles.quickTimeText,
-                  task.sessionMinutes === time && styles.quickTimeTextActive
-                ]}>
-                  {time}m
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
+        <TimeRangePicker
+          taskId={task.id}
+          startTime={task.startTime}
+          endTime={task.endTime}
+          sessionMinutes={task.sessionMinutes}
+          onUpdateStartTime={onUpdateStartTime}
+          onUpdateEndTime={onUpdateEndTime}
+        />
       )}
     </View>
   );
@@ -218,45 +275,35 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: COLORS.darkGray,
   },
-  timeInputRow: {
+  timeRangeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
-    gap: 8,
+    justifyContent: 'space-between',
+    gap: 12,
   },
-  timeInput: {
+  timePickerButton: {
+    flex: 1,
     backgroundColor: COLORS.background,
     borderRadius: 8,
     padding: 10,
-    width: 70,
+    alignItems: 'center',
+    gap: 4,
+  },
+  timePickerLabel: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    fontWeight: '600',
+  },
+  timePickerValue: {
     fontSize: 16,
     fontWeight: 'bold',
     color: COLORS.textPrimary,
-    textAlign: 'center',
   },
-  minText: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-  },
-  quickTimeScroll: {
-    marginTop: 4,
-  },
-  quickTimeButton: {
-    backgroundColor: COLORS.darkGray,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-    marginRight: 8,
-  },
-  quickTimeButtonActive: {
-    backgroundColor: COLORS.primary,
-  },
-  quickTimeText: {
+  durationText: {
     fontSize: 13,
+    color: COLORS.primary,
     fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  quickTimeTextActive: {
-    color: COLORS.background,
+    textAlign: 'center',
+    marginTop: 8,
   },
 });

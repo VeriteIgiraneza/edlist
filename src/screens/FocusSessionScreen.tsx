@@ -16,6 +16,8 @@ interface Props {
 
 interface TaskWithTime extends Task {
   sessionMinutes?: number;
+  startTime?: Date;
+  endTime?: Date;
   selected: boolean;
 }
 
@@ -124,12 +126,31 @@ export const FocusSessionScreen: React.FC<Props> = ({ navigation }) => {
     );
   };
 
-  const updateTaskTime = (taskId: number, minutes: string) => {
-    const mins = parseInt(minutes) || undefined;
+  const updateStartTime = (taskId: number, time: Date) => {
     setSessionTasks(prev =>
-      prev.map(task =>
-        task.id === taskId ? { ...task, sessionMinutes: mins } : task
-      )
+      prev.map(task => {
+        if (task.id !== taskId) return task;
+        const updated = { ...task, startTime: time };
+        if (updated.endTime) {
+          const diff = Math.round((updated.endTime.getTime() - time.getTime()) / 60000);
+          updated.sessionMinutes = diff > 0 ? diff : undefined;
+        }
+        return updated;
+      })
+    );
+  };
+
+  const updateEndTime = (taskId: number, time: Date) => {
+    setSessionTasks(prev =>
+      prev.map(task => {
+        if (task.id !== taskId) return task;
+        const updated = { ...task, endTime: time };
+        if (updated.startTime) {
+          const diff = Math.round((time.getTime() - updated.startTime.getTime()) / 60000);
+          updated.sessionMinutes = diff > 0 ? diff : undefined;
+        }
+        return updated;
+      })
     );
   };
 
@@ -257,7 +278,8 @@ const [lastTap, setLastTap] = useState<number | null>(null);
       sessionTasks={sessionTasks}
       stats={getStats()}
       onToggleSelection={toggleTaskSelection}
-      onUpdateTime={updateTaskTime}
+      onUpdateStartTime={updateStartTime}
+      onUpdateEndTime={updateEndTime}
       onSelectAll={selectAll}
       onDeselectAll={deselectAll}
       onStartSession={startSession}
