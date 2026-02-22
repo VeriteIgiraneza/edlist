@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
   content: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 15,
+    paddingVertical: 4,
     paddingLeft: 8,
     paddingRight: 8,
   },
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 4,
     flexWrap: 'nowrap',
-    maxHeight: 20,
+    maxHeight: 24,
   },
   completedText: {
     textDecorationLine: 'line-through',
