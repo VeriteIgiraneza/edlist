@@ -59,7 +59,6 @@ const TimeRangePicker: React.FC<{
           style={styles.timePickerButton}
           onPress={() => setShowStartPicker(true)}
         >
-          <MaterialCommunityIcons name="clock-start" size={18} color={COLORS.primary} />
           <Text style={styles.timePickerLabel}>Start</Text>
           <Text style={styles.timePickerValue}>{formatTimeDisplay(startTime)}</Text>
         </TouchableOpacity>
@@ -70,7 +69,6 @@ const TimeRangePicker: React.FC<{
           style={styles.timePickerButton}
           onPress={() => setShowEndPicker(true)}
         >
-          <MaterialCommunityIcons name="clock-end" size={18} color={COLORS.primary} />
           <Text style={styles.timePickerLabel}>End</Text>
           <Text style={styles.timePickerValue}>{formatTimeDisplay(endTime)}</Text>
         </TouchableOpacity>
@@ -285,9 +283,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
     borderRadius: 8,
-    padding: 10,
+    padding: 8,
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    justifyContent: 'center',
+    gap: 6,
   },
   timePickerLabel: {
     fontSize: 11,
